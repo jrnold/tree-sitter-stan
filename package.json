@@ -1,0 +1,25 @@
+{
+  "name": "tree-sitter-stan",
+  "version": "0.0.1",
+  "description": "Stan grammar for node-tree-sitter",
+  "main": "index.js",
+  "keywords": [
+    "parser",
+    "lexer"
+  ],
+  "author": "Jeffrey B. Arnold",
+  "license": "MIT",
+  "dependencies": {
+    "bindings": "1.2.x",
+    "nan": "^2.10.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.12.6"
+  },
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build",
+    "test": "tree-sitter test && tree-sitter parse examples/* --quiet --time",
+    "tree-sitter": "tree-sitter",
+    "parse": "tree-sitter parse"
+  }
+}

@@ -1,0 +1,228 @@
+==============
+int
+==============
+
+int foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (int_type)
+    (identifier)))
+
+==============
+real
+==============
+
+real foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type)
+    (identifier)))
+
+==============
+vector
+==============
+
+vector[1] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (vector_type
+      (numeric_literal))
+    (identifier)))
+
+==============
+row_vector
+==============
+
+row_vector[3] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (row_vector_type
+      (numeric_literal))
+    (identifier)))
+
+==============
+unit_vector
+==============
+
+unit_vector[5] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (unit_vector_type
+      (numeric_literal))
+    (identifier)))
+
+==============
+matrix
+==============
+
+matrix[2, 3] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (matrix_type
+      (numeric_literal)
+      (numeric_literal))
+    (identifier)))
+
+==============
+cov_matrix
+==============
+
+cov_matrix[3] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (cov_matrix_type
+      (numeric_literal))
+    (identifier)))
+
+==============
+corr_matrix
+==============
+
+corr_matrix[4] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (corr_matrix_type
+      (numeric_literal))
+    (identifier)))
+
+===================
+cholesky_factor_cov
+===================
+
+cholesky_factor_cov[3] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (cholesky_factor_cov_type
+      (numeric_literal))
+    (identifier)))
+
+====================
+cholesky_factor_corr
+====================
+
+cholesky_factor_corr[4] foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (cholesky_factor_corr_type
+      (numeric_literal))
+    (identifier)))
+
+=======================
+lower range constraints
+=======================
+
+real<lower = 1.0> foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type
+      (range_lower
+        (numeric_literal)))
+    (identifier)))
+
+=======================
+upper range constraints
+=======================
+
+real<upper = 1.0> foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type
+      (range_upper
+        (numeric_literal)))
+    (identifier)))
+
+=================================
+upper and lower range constraints
+=================================
+
+real<lower = 0.0, upper = 1.0> foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type
+        (range_lower_upper
+          (numeric_literal)
+          (numeric_literal)))
+    (identifier)))
+
+=================================
+empty range constraints
+=================================
+
+real<> foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type
+      (range_empty))
+    (identifier)))
+
+=====================================
+range constraints with relational ops
+=====================================
+
+real<lower = a < 1, upper = b > 3> foo;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type
+        (range_lower_upper
+          (infix_op_expression (identifier) (numeric_literal)))
+          (infix_op_expression (identifier) (numeric_literal)))
+    (identifier)))
+
+=====================================
+declaration and assignment
+=====================================
+
+real foo = 1.0;
+
+---
+
+(translation_unit
+  (var_decl
+    (real_type)
+    (identifier)
+    (numeric_literal)))

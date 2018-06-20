@@ -1,0 +1,11 @@
+====================
+function declaration
+====================
+
+real foo(real) {
+  return 1;
+};
+
+---
+
+(translation_unit)

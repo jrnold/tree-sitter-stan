@@ -1,0 +1,380 @@
+=====================
+assignment statement
+=====================
+
+a = 1;
+
+----
+
+(translation_unit
+  (assignment_statement
+    (identifier)
+    (assignment_op)
+    (numeric_literal)))
+
+======================================
+assignment statement with lhs index
+======================================
+
+a[1, 1] = 1;
+
+----
+
+(translation_unit
+  (assignment_statement
+    (identifier)
+    (indexes
+      (index
+        (numeric_literal))
+      (index
+        (numeric_literal)))
+  (assignment_op)
+  (numeric_literal)))
+
+===========================
+old assignment statement
+===========================
+
+a <- 1;
+
+----
+
+(translation_unit
+  (assignment_statement
+    (identifier)
+    (assignment_op)
+    (numeric_literal)))
+
+================================
+assignment statement plus-equal
+================================
+
+a += 1;
+
+----
+
+(translation_unit
+  (assignment_statement
+    (identifier)
+    (assignment_op)
+    (numeric_literal)))
+
+================================
+sampling statement
+================================
+
+a ~ foo(a, b);
+
+----
+
+(translation_unit
+  (sampling_statement
+    (identifier)
+    (identifier)
+    (comma_expression
+      (identifier)
+      (identifier))))
+
+================================
+function_statement
+================================
+
+foo(a, b);
+
+----
+
+(translation_unit
+  (function_expression
+    (identifier)
+    (comma_expression
+      (identifier)
+      (identifier))))
+
+==================
+log_prob_statement
+==================
+
+increment_log_prob(1);
+
+---
+
+(translation_unit
+  (log_prob_statement
+    (numeric_literal)))
+
+==================
+target statement
+==================
+
+target += 1;
+
+---
+
+(translation_unit
+  (target_statement
+    (numeric_literal)))
+
+==================
+break statement
+==================
+
+break;
+
+---
+
+(translation_unit
+  (break_statement))
+
+==================
+continue statement
+==================
+
+continue;
+
+---
+
+(translation_unit
+  (continue_statement))
+
+==================
+print statement
+==================
+
+print("abc");
+
+---
+
+(translation_unit
+  (print_statement
+    (string_literal)))
+
+=================================
+print statement with expression
+=================================
+
+print(a + 1);
+
+---
+
+(translation_unit
+  (print_statement
+    (infix_op_expression
+      (identifier)
+      (numeric_literal))))
+
+=================================
+print statement, empty
+=================================
+
+print();
+
+---
+
+(translation_unit
+  (print_statement))
+
+==================
+reject statement
+==================
+
+reject("abc");
+
+---
+
+(translation_unit
+  (reject_statement
+    (string_literal)))
+
+=================================
+reject statement with expression
+=================================
+
+reject(a + 1);
+
+---
+
+(translation_unit
+  (reject_statement
+    (infix_op_expression
+      (identifier)
+      (numeric_literal))))
+
+=================================
+reject statement, empty
+=================================
+
+reject();
+
+---
+
+(translation_unit
+  (reject_statement))
+
+=================================
+return statement
+=================================
+
+return a;
+
+---
+
+(translation_unit
+  (return_statement
+    (identifier)))
+
+=================================
+if statment
+=================================
+
+if (1) foo();
+
+---
+
+(translation_unit
+  (if_statement
+    (numeric_literal)
+    (function_expression
+      (identifier))))
+
+=================================
+if statment
+=================================
+
+if (1) foo();
+
+---
+
+(translation_unit
+  (if_statement
+    (numeric_literal)
+    (function_expression
+      (identifier))))
+
+=================================
+if-else statment
+=================================
+
+if (1) {
+  foo();
+} else {
+  bar();
+}
+
+---
+
+(translation_unit
+  (if_statement
+    (numeric_literal)
+    (block_statements
+      (function_expression
+        (identifier)))
+    (block_statements
+      (function_expression
+        (identifier)))))
+
+=================================
+if-elseif-else statment
+=================================
+
+if (a) {
+  foo();
+} else if (b) {
+  bar();
+} else {
+  baz();
+}
+
+---
+
+(translation_unit
+  (if_statement
+    (identifier)
+    (block_statements
+      (function_expression
+        (identifier)))
+    (if_statement
+      (identifier)
+      (block_statements
+        (function_expression
+          (identifier)))
+      (block_statements
+        (function_expression
+          (identifier))))))
+
+=================================
+if-else with no braces
+=================================
+
+if (a) foo(); else bar();
+
+---
+
+(translation_unit
+  (if_statement
+    (identifier)
+    (function_expression
+      (identifier))
+    (function_expression
+          (identifier))))
+
+=================================
+while statement
+=================================
+
+while (a < 0) {
+  a = 0;
+}
+
+---
+
+(translation_unit
+  (while_statement
+    (infix_op_expression
+      (identifier)
+      (numeric_literal))
+    (block_statements
+      (assignment_statement
+        (identifier)
+        (assignment_op)
+        (numeric_literal)))))
+
+=================================
+for statement
+=================================
+
+for (i in 1:n) {
+  print(i);
+}
+
+---
+
+(translation_unit
+  (for_statement
+    (identifier)
+    (numeric_literal)
+    (identifier)
+    (block_statements
+      (print_statement
+        (identifier)))))
+
+=================================
+block statements
+=================================
+
+{
+  a = 1;
+  b = 2;
+}
+
+---
+
+(translation_unit
+  (block_statements
+    (assignment_statement
+      (identifier)
+      (assignment_op)
+      (numeric_literal))
+    (assignment_statement
+      (identifier)
+      (assignment_op)
+      (numeric_literal))))
