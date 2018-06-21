@@ -3,6 +3,19 @@
 */
 # This is a comment
 // this is a comment
+functions {
+  void f0(real a) {
+    target += a;
+  }
+  real[,] f1(real[,,] a) {
+    return sum(a);
+  }
+  row_vector[] f2(real a, int b, matrix[] c) {
+    real d;
+    d = a + b;
+    return d;
+  }
+}
 data {
   real delta;
 }
@@ -18,10 +31,6 @@ transformed parameters {
 }
 model {
   real foo;
-  //int<lower=0> bar1;
-  //int<upper=0> bar2;
-  // int<lower=0, upper=1> bar3;
-  // int<> bar4;
   vector[1] baz;
   row_vector[2] qux;
   matrix[2, 3] quux;

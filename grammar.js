@@ -41,15 +41,24 @@ module.exports = grammar({
     $.include
   ],
 
+  inline: $ => [
+    $._statement
+  ],
+
   conflicts: $ => [
-    [$._expression, $._statement],
-    [$.array_expression, $.block_statement]
+    [$.array_expression, $.block_statement],
+    [$._range_expression, $.block_statement],
+    [$._range_expression, $.transformed_data],
+    [$._range_expression, $.if_statement],
+    [$._range_expression, $.while_statement],
+    [$._range_expression, $.for_statement],
+    [$._expression, $._range_expression],
   ],
 
   rules: {
     // The production rules of the context-free grammar
     program: $ => seq(
-      // optional($.functions),
+      optional($.functions),
       optional($.data),
       optional($.transformed_data),
       optional($.params),
@@ -61,7 +70,7 @@ module.exports = grammar({
     functions: $ => seq(
       'functions',
       '{',
-      repeat($.function_declaration),
+      repeat($.function_definition),
       '}'
     ),
 
@@ -113,35 +122,43 @@ module.exports = grammar({
     ),
 
     // Function declaration
-    function_declaration: $ => prec(1, seq(
-      $.unsized_return_type,
-      $.identifier,
-      $.parameter_list,
+    function_definition: $ => seq(
+      $.return_type,
+      $.function_declarator,
       $._statement
-    )),
-
-    parameter_list: $ => seq(
-      '(',
-      commaSep($.parameter),
-      ')'
     ),
 
-    parameter: $ => seq(
+    function_declarator: $ => prec(1, seq(
+      $.identifier,
+      $.parameter_list
+    )),
+
+    parameter_list: $ => prec.dynamic(1, seq(
+      '(',
+      commaSep($.parameter_declaration),
+      ')'
+    )),
+
+    parameter_declaration: $ => seq(
       $.unsized_type,
       $.identifier
     ),
 
-    unsized_return_type: $ => choice(
+    return_type: $ => choice(
       'void',
       $.unsized_type
     ),
 
     unsized_type: $ => seq(
       $.basic_type,
-      optional($.unsized_dims)
+      optional(seq(
+        '[',
+        repeat(','),
+        ']'
+      ))
     ),
 
-    basic_type: $ => token(choice(
+    basic_type: $ => prec.dynamic(1, choice(
       'int',
       'real',
       'vector',
@@ -149,20 +166,14 @@ module.exports = grammar({
       'matrix'
     )),
 
-    unsized_dims: $ => seq(
-      '[',
-      repeat(','),
-      ']'
-    ),
-
     // Variable Declarations
-    variable_declaration: $ => seq(
+    variable_declaration: $ => prec(1, seq(
       $._var_type,
       $.identifier,
       optional($.dims),
       optional(seq('=', $._expression)),
       ';'
-    ),
+    )),
 
     _var_type: $ => choice(
       $.int_type,
@@ -272,66 +283,73 @@ module.exports = grammar({
       ']'
     ),
 
-    range_constraint: $ => choice(
-      $.range_lower_upper,
+    // this parses differently than Stan. Stan does not allow
+    // ANY <> expressions inside the
+    range_constraint: $ => prec(PREC.RANGE, choice(
+      $.range_empty,
       $.range_lower,
       $.range_upper,
-      $.range_empty,
-    ),
+      $.range_lower_upper
+    )),
 
-    range_empty: $ => seq('<', '>'),
+    range_empty: $ => prec(PREC.RANGE, seq('<', '>')),
 
-    range_lower_upper: $ => seq(
+    range_lower_upper: $ => prec(PREC.RANGE, seq(
       '<',
       'lower',
       '=',
-      $._expression,
+      $._range_expression,
       ',',
       'upper',
       '=',
-      $._expression,
+      $._range_expression,
       '>'
-    ),
+    )),
 
-    range_upper: $ => seq(
-      '<',
-      'upper',
-      '=',
-      $._expression,
-      '>'
-    ),
-
-    range_lower: $ => seq(
+    range_lower: $ => prec(PREC.RANGE, seq(
       '<',
       'lower',
       '=',
-      $._expression,
+      $._range_expression,
       '>'
-    ),
+    )),
 
-    dims: $ => prec(PREC.BRACKET, seq(
+    range_upper: $ => prec(PREC.RANGE, seq(
+      '<',
+      'upper',
+      '=',
+      $._range_expression,
+      '>'
+    )),
+
+    dims: $ => seq(
       '[',
       commaSep($._expression),
       ']'
-    )),
+    ),
 
     identifier: $ => /[A-Za-z][A-Za-z0-9_]*/,
 
     // Expressions
-
     _expression: $ => choice(
+      $._range_expression,
+      $.conditional_expression,
+      $.infix_logical_expression
+    ),
+
+    // range constraints only allow a subset of expressions
+    _range_expression: $ => choice(
       $.integer_literal,
       $.real_literal,
       $.identifier,
       $.array_expression,
-      $.conditional_expression,
-      $.infix_op_expression,
+      $.infix_math_expression,
       $.prefix_op_expression,
       $.postfix_op_expression,
       $.indexed_expression,
       $.function_expression,
       $.distr_expression,
-      $.parenthized_expression
+      $.parenthized_expression,
     ),
 
     conditional_expression: $ => prec.right(PREC.CONDITIONAL, seq(
@@ -348,7 +366,7 @@ module.exports = grammar({
       '}'
     ),
 
-    infix_op_expression: $ => choice(
+    infix_math_expression: $ => choice(
       ...[
         ['^', PREC.EXPON, prec.right],
         ['.*', PREC.EL_MULT, prec.left],
@@ -359,6 +377,15 @@ module.exports = grammar({
         ['/', PREC.DIV, prec.left],
         ['+', PREC.ADD, prec.left],
         ['-', PREC.SUB, prec.left],
+      ].map(([operator, precedence, fun]) =>
+        fun(precedence, seq($._expression, operator, $._expression))
+      )
+    ),
+
+    // these are separated because they cannot be used inside of
+    // range constraints <>
+    infix_logical_expression: $ => choice(
+      ...[
         ['>=', PREC.GEQ, prec.left],
         ['>', PREC.GT, prec.left],
         ['<=', PREC.LEQ, prec.left],
@@ -386,7 +413,7 @@ module.exports = grammar({
     ),
 
     // trick used for call expression in c grammar
-    indexed_expression: $ => prec(PREC.BRACKET, seq(
+    indexed_expression: $ => prec.left(PREC.INDEX, seq(
       $._expression,
       '[',
       commaSep1($.index),
@@ -401,8 +428,8 @@ module.exports = grammar({
     argument_list: $ => prec.dynamic(1, seq(
       '(',
       commaSep($._expression),
-      ')')
-    ),
+      ')'
+    )),
 
     distr_expression: $ => prec(PREC.FUNCTION, seq(
       $.identifier,
@@ -414,18 +441,18 @@ module.exports = grammar({
       $._expression,
       '|',
       commaSep($._expression),
-      ')')
-    ),
+      ')'
+    )),
 
-    integrate_ode: $ => prec(PREC.FUNCTION, seq(
+    integrate_ode: $ => seq(
       'integrate_ode',
       '(',
       $.identifier,
       repRule($._expression, 6),
       ')'
-    )),
+    ),
 
-    integrate_ode_r45: $ => prec(PREC.FUNCTION, seq(
+    integrate_ode_r45: $ => seq(
       'integrate_ode_rk45',
       '(',
       $.identifier,
@@ -434,9 +461,9 @@ module.exports = grammar({
         repRule($._expression, 9)
       ),
       ')'
-    )),
+    ),
 
-    algebra_solver: $ => prec(PREC.FUNCTION, seq(
+    algebra_solver: $ => seq(
       'algebra_solver',
       '(',
       $.identifier,
@@ -445,9 +472,9 @@ module.exports = grammar({
         repRule($._expression, 7)
       ),
       ')'
-    )),
+    ),
 
-    integrate_ode_bdf: $ => prec(PREC.FUNCTION, seq(
+    integrate_ode_bdf: $ => seq(
       'integrate_ode_bdf',
       '(',
       $.identifier,
@@ -456,13 +483,13 @@ module.exports = grammar({
         repRule($._expression, 9)
       ),
       ')'
-    )),
+    ),
 
-    parenthized_expression: $ => prec(PREC.PAREN, seq(
+    parenthized_expression: $ => seq(
       '(',
       $._expression,
       ')'
-    )),
+    ),
 
     index: $ => choice(
       $._expression,
@@ -510,7 +537,7 @@ module.exports = grammar({
       ';'
     )),
 
-    assignment_op: $ => token(choice(
+    assignment_op: $ => choice(
       "<-",
       "=",
       "+=",
@@ -518,7 +545,7 @@ module.exports = grammar({
       "/=",
       ".*=",
       "./="
-    )),
+    ),
 
     sampling_statement: $ => seq(
       $._expression,
