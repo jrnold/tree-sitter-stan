@@ -1,3 +1,4 @@
+/* global alias, choice, grammar, optional, prec, repeat, seq, token */
 const PREC = {
   ASSIGN: -2,
   CONDITIONAL: -1,
@@ -27,8 +28,71 @@ const PREC = {
   PAREN: 12,
   FUNCTION: 12,
   TRANSPOSE: 12,
-  RANGE: 13
+  RANGE: 13,
 };
+
+function commaSep1(rule) {
+  return seq(
+    rule,
+    repeat(seq(',', rule)),
+  );
+}
+
+// comma separated variables
+function commaSep(rule) {
+  return optional(commaSep1(rule));
+}
+
+// repeat rule n times
+function repRule(rule, n) {
+  return seq(...Array(n).fill(rule));
+}
+
+const operators = {
+  infix: {
+    arithmetic: [
+      ['^', PREC.EXPON, prec.right],
+      ['.*', PREC.EL_MULT, prec.left],
+      ['./', PREC.EL_DIV, prec.left],
+      ['\\', PREC.LEFT_DIV, prec.left],
+      ['*', PREC.MULT, prec.left],
+      ['%', PREC.MOD, prec.left],
+      ['/', PREC.DIV, prec.left],
+      ['+', PREC.ADD, prec.left],
+      ['-', PREC.SUB, prec.left],
+    ],
+    logical: [
+      ['>=', PREC.GEQ, prec.left],
+      ['>', PREC.GT, prec.left],
+      ['<=', PREC.LEQ, prec.left],
+      ['<', PREC.LT, prec.left],
+      ['!=', PREC.NEQ, prec.left],
+      ['==', PREC.EQ, prec.left],
+      ['&&', PREC.LAND, prec.left],
+      ['||', PREC.LOR, prec.left],
+    ],
+  },
+  prefix: [
+    ['+', PREC.PLUS],
+    ['-', PREC.MINUS],
+    ['!', PREC.LNEG],
+  ],
+  postfix: [
+    ['\'', PREC.TRANSPOSE],
+  ],
+};
+
+function infixExpressions(ops, expression) {
+  return ops.map(([op, number, func]) => func(number, seq(expression, op, expression)));
+}
+
+function prefixExpressions(ops, expression) {
+  return ops.map(([op, number]) => prec.right(number, seq(op, expression)));
+}
+
+function postfixExpressions(ops, expression) {
+  return ops.map(([op, number]) => prec.left(number, seq(expression, op)));
+}
 
 module.exports = grammar({
   name: 'stan',
@@ -38,115 +102,117 @@ module.exports = grammar({
   extras: $ => [
     /\s/,
     $.comment,
-    $.include
   ],
 
   inline: $ => [
-    $._statement
+    $._statement,
+    $._variable_decl_statements,
+    $._variable_decls,
   ],
 
   conflicts: $ => [
     [$.array_expression, $.block_statement],
-    [$._range_expression, $.block_statement],
-    [$._range_expression, $.transformed_data],
-    [$._range_expression, $.if_statement],
-    [$._range_expression, $.while_statement],
-    [$._range_expression, $.for_statement],
+    [$._common_expression, $.lhs],
     [$._expression, $._range_expression],
+    [$._common_expression, $.block_statement],
+    [$.transformed_data, $._common_expression],
+    [$.model, $._common_expression],
   ],
 
   rules: {
     // The production rules of the context-free grammar
     program: $ => seq(
-      optional($.functions),
-      optional($.data),
-      optional($.transformed_data),
-      optional($.params),
-      optional($.transformed_params),
-      $.model,
-      optional($.generated_quantities)
+      seq(
+        optional($.functions),
+        optional($.data),
+        optional($.transformed_data),
+        optional($.parameters),
+        optional($.transformed_parameters),
+        optional($.model),
+        optional($.generated_quantities),
+      ),
     ),
 
     functions: $ => seq(
       'functions',
       '{',
       repeat($.function_definition),
-      '}'
+      '}',
     ),
 
     data: $ => seq(
       'data',
-      '{',
-      repeat($.variable_declaration),
-      '}'
+      $._variable_decls,
     ),
 
     transformed_data: $ => seq(
       'transformed',
       'data',
-      '{',
-      repeat($.variable_declaration),
-      repeat($._statement),
-      '}'
+      $._variable_decl_statements,
     ),
 
-    params: $ => seq(
+    parameters: $ => seq(
       'parameters',
-      '{',
-      repeat($.variable_declaration),
-      '}'
+      $._variable_decls,
     ),
 
-    transformed_params: $ => seq(
+    transformed_parameters: $ => seq(
       'transformed',
       'parameters',
-      '{',
-      repeat($.variable_declaration),
-      repeat($._statement),
-      '}'
+      $._variable_decl_statements,
     ),
 
-    model: $ => seq(
+    model: $ => prec(1, seq(
       'model',
-      // model statement; is valid. {} are not necessary.
-      $._statement
-    ),
+      $._variable_decl_statements,
+    )),
 
     generated_quantities: $ => seq(
       'generated',
       'quantities',
+      $._variable_decl_statements,
+    ),
+
+    _variable_decl_statements: $ => seq(
       '{',
       repeat($.variable_declaration),
       repeat($._statement),
-      '}'
+      '}',
+    ),
+
+    _variable_decls: $ => seq(
+      '{',
+      repeat($.variable_declaration),
+      '}',
     ),
 
     // Function declaration
     function_definition: $ => seq(
       $.return_type,
       $.function_declarator,
-      $._statement
+      $._statement,
     ),
 
     function_declarator: $ => prec(1, seq(
       $.identifier,
-      $.parameter_list
+      $.parameter_list,
     )),
 
     parameter_list: $ => prec.dynamic(1, seq(
       '(',
       commaSep($.parameter_declaration),
-      ')'
+      ')',
     )),
 
     parameter_declaration: $ => seq(
+      optional('data'),
       $.unsized_type,
-      $.identifier
+      $.identifier,
     ),
 
     return_type: $ => choice(
       'void',
-      $.unsized_type
+      $.unsized_type,
     ),
 
     unsized_type: $ => seq(
@@ -154,17 +220,19 @@ module.exports = grammar({
       optional(seq(
         '[',
         repeat(','),
-        ']'
-      ))
+        ']',
+      )),
     ),
 
+    /* eslint-disable no-unused-vars */
     basic_type: $ => prec.dynamic(1, choice(
       'int',
       'real',
       'vector',
       'row_vector',
-      'matrix'
+      'matrix',
     )),
+    /* eslint-enable no-unused-vars */
 
     // Variable Declarations
     variable_declaration: $ => prec(1, seq(
@@ -172,7 +240,7 @@ module.exports = grammar({
       $.identifier,
       optional($.dims),
       optional(seq('=', $._expression)),
-      ';'
+      ';',
     )),
 
     _var_type: $ => choice(
@@ -188,17 +256,17 @@ module.exports = grammar({
       $.cholesky_factor_cov_type,
       $.cholesky_factor_corr_type,
       $.cov_matrix_type,
-      $.corr_matrix_type
+      $.corr_matrix_type,
     ),
 
     int_type: $ => seq(
       'int',
-      optional($.range_constraint)
+      optional($.range_constraint),
     ),
 
     real_type: $ => seq(
       'real',
-      optional($.range_constraint)
+      optional($.range_constraint),
     ),
 
     vector_type: $ => seq(
@@ -206,35 +274,35 @@ module.exports = grammar({
       optional($.range_constraint),
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     ordered_type: $ => seq(
       'ordered',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     positive_ordered_type: $ => seq(
       'positive_ordered',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     simplex_type: $ => seq(
       'simplex',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     unit_vector_type: $ => seq(
       'unit_vector',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     row_vector_type: $ => seq(
@@ -242,7 +310,7 @@ module.exports = grammar({
       optional($.range_constraint),
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     matrix_type: $ => seq(
@@ -252,35 +320,41 @@ module.exports = grammar({
       $._expression,
       ',',
       $._expression,
-      ']'
+      ']',
     ),
 
     cholesky_factor_corr_type: $ => seq(
       'cholesky_factor_corr',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     cholesky_factor_cov_type: $ => seq(
       'cholesky_factor_cov',
       '[',
       $._expression,
-      ']'
+      optional(
+        seq(
+          ',',
+          $._expression,
+        ),
+      ),
+      ']',
     ),
 
     corr_matrix_type: $ => seq(
       'corr_matrix',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     cov_matrix_type: $ => seq(
       'cov_matrix',
       '[',
       $._expression,
-      ']'
+      ']',
     ),
 
     // this parses differently than Stan. Stan does not allow
@@ -289,10 +363,12 @@ module.exports = grammar({
       $.range_empty,
       $.range_lower,
       $.range_upper,
-      $.range_lower_upper
+      $.range_lower_upper,
     )),
 
+    /* eslint-disable no-unused-vars */
     range_empty: $ => prec(PREC.RANGE, seq('<', '>')),
+    /* eslint-enable no-unused-vars */
 
     range_lower_upper: $ => prec(PREC.RANGE, seq(
       '<',
@@ -303,7 +379,7 @@ module.exports = grammar({
       'upper',
       '=',
       $._range_expression,
-      '>'
+      '>',
     )),
 
     range_lower: $ => prec(PREC.RANGE, seq(
@@ -311,7 +387,7 @@ module.exports = grammar({
       'lower',
       '=',
       $._range_expression,
-      '>'
+      '>',
     )),
 
     range_upper: $ => prec(PREC.RANGE, seq(
@@ -319,34 +395,46 @@ module.exports = grammar({
       'upper',
       '=',
       $._range_expression,
-      '>'
+      '>',
     )),
 
     dims: $ => seq(
       '[',
       commaSep($._expression),
-      ']'
+      ']',
     ),
 
+    /* eslint-disable no-unused-vars */
     identifier: $ => /[A-Za-z][A-Za-z0-9_]*/,
+    /* eslint-enable no-unused-vars */
 
     // Expressions
     _expression: $ => choice(
       $._range_expression,
       $.conditional_expression,
-      $.infix_logical_expression
+      $.infix_op_expression,
+      $.prefix_op_expression,
+      $.postfix_op_expression,
+      $.indexed_expression,
+    ),
+
+    // in order to deal with ambiguity of <> range expressions
+    // cannot directly include logical infix operators.
+    _range_expression: $ => choice(
+      $._common_expression,
+      alias($.infix_op_range_expression, $.infix_op_expression),
+      alias($.prefix_op_range_expression, $.prefix_op_expression),
+      alias($.postfix_op_range_expression, $.postfix_op_expression),
+      alias($.indexed_range_expression, $.indexed_expression),
     ),
 
     // range constraints only allow a subset of expressions
-    _range_expression: $ => choice(
+    _common_expression: $ => choice(
       $.integer_literal,
       $.real_literal,
       $.identifier,
       $.array_expression,
-      $.infix_math_expression,
-      $.prefix_op_expression,
-      $.postfix_op_expression,
-      $.indexed_expression,
+      $.vector_expression,
       $.function_expression,
       $.distr_expression,
       $.parenthized_expression,
@@ -357,83 +445,78 @@ module.exports = grammar({
       '?',
       $._expression,
       ':',
-      $._expression
+      $._expression,
     )),
 
     array_expression: $ => seq(
       '{',
       commaSep($._expression),
-      '}'
+      '}',
     ),
 
-    infix_math_expression: $ => choice(
-      ...[
-        ['^', PREC.EXPON, prec.right],
-        ['.*', PREC.EL_MULT, prec.left],
-        ['./', PREC.EL_DIV, prec.left],
-        ['\\', PREC.LEFT_DIV, prec.left],
-        ['*', PREC.MULT, prec.left],
-        ['%', PREC.MOD, prec.left],
-        ['/', PREC.DIV, prec.left],
-        ['+', PREC.ADD, prec.left],
-        ['-', PREC.SUB, prec.left],
-      ].map(([operator, precedence, fun]) =>
-        fun(precedence, seq($._expression, operator, $._expression))
-      )
-    ),
+    vector_expression: $ => prec(PREC.BRACKET, seq(
+      '[',
+      commaSep($._expression),
+      ']',
+    )),
 
-    // these are separated because they cannot be used inside of
-    // range constraints <>
-    infix_logical_expression: $ => choice(
-      ...[
-        ['>=', PREC.GEQ, prec.left],
-        ['>', PREC.GT, prec.left],
-        ['<=', PREC.LEQ, prec.left],
-        ['<', PREC.LT, prec.left],
-        ['!=', PREC.NEQ, prec.left],
-        ['==', PREC.EQ, prec.left],
-        ['&&', PREC.LAND, prec.left],
-        ['||', PREC.LOR, prec.left]
-      ].map(([operator, precedence, fun]) =>
-        fun(precedence, seq($._expression, operator, $._expression))
-      )
-    ),
+    // operator expressions outside of range constraints
+    infix_op_expression: ($) => {
+      const ops = operators.infix.arithmetic.concat(operators.infix.logical);
+      return choice(
+        ...infixExpressions(ops, $._expression),
+      );
+    },
 
-    prefix_op_expression: $ => choice(
-      ...[
-        ['+', PREC.PLUS],
-        ['-', PREC.MINUS],
-        ['!', PREC.LNEG]
-      ].map(([operator, precedence]) =>
-             prec.left(precedence, seq(operator, $._expression)))
-    ),
+    prefix_op_expression: $ => choice(...prefixExpressions(operators.prefix, $._expression)),
 
-    postfix_op_expression: $ => choice(
-      prec.right(PREC.TRANSPOSE, seq($._expression, '\''))
-    ),
+    postfix_op_expression: $ => choice(...postfixExpressions(operators.postfix, $._expression)),
 
     // trick used for call expression in c grammar
     indexed_expression: $ => prec.left(PREC.INDEX, seq(
       $._expression,
       '[',
-      commaSep1($.index),
-      ']'
+      optional($.index),
+      repeat(seq(',', optional($.index))),
+      ']',
+    )),
+
+    // expressions inside of range constraints
+    infix_op_range_expression: $ => choice(
+      ...infixExpressions(operators.infix.arithmetic, $._range_expression),
+    ),
+
+    prefix_op_range_expression: $ => choice(
+      ...prefixExpressions(operators.prefix, $._range_expression),
+    ),
+
+    postfix_op_range_expression: $ => choice(
+      ...postfixExpressions(operators.postfix, $._range_expression),
+    ),
+
+    // trick used for call expression in c grammar
+    indexed_range_expression: $ => prec.left(PREC.INDEX, seq(
+      $._range_expression,
+      '[',
+      optional($.index),
+      repeat(seq(',', optional($.index))),
+      ']',
     )),
 
     function_expression: $ => prec(PREC.FUNCTION, seq(
       $.identifier,
-      $.argument_list
+      $.argument_list,
     )),
 
     argument_list: $ => prec.dynamic(1, seq(
       '(',
       commaSep($._expression),
-      ')'
+      ')',
     )),
 
     distr_expression: $ => prec(PREC.FUNCTION, seq(
       $.identifier,
-      $.distr_argument_list
+      $.distr_argument_list,
     )),
 
     distr_argument_list: $ => prec.dynamic(1, seq(
@@ -441,7 +524,7 @@ module.exports = grammar({
       $._expression,
       '|',
       commaSep($._expression),
-      ')'
+      ')',
     )),
 
     integrate_ode: $ => seq(
@@ -449,7 +532,7 @@ module.exports = grammar({
       '(',
       $.identifier,
       repRule($._expression, 6),
-      ')'
+      ')',
     ),
 
     integrate_ode_r45: $ => seq(
@@ -458,9 +541,9 @@ module.exports = grammar({
       $.identifier,
       choice(
         repRule($._expression, 6),
-        repRule($._expression, 9)
+        repRule($._expression, 9),
       ),
-      ')'
+      ')',
     ),
 
     algebra_solver: $ => seq(
@@ -469,9 +552,9 @@ module.exports = grammar({
       $.identifier,
       choice(
         repRule($._expression, 4),
-        repRule($._expression, 7)
+        repRule($._expression, 7),
       ),
-      ')'
+      ')',
     ),
 
     integrate_ode_bdf: $ => seq(
@@ -480,33 +563,41 @@ module.exports = grammar({
       $.identifier,
       choice(
         repRule($._expression, 6),
-        repRule($._expression, 9)
+        repRule($._expression, 9),
       ),
-      ')'
+      ')',
     ),
 
     parenthized_expression: $ => seq(
       '(',
       $._expression,
-      ')'
+      ')',
     ),
 
     index: $ => choice(
       $._expression,
-      seq($._expression, ":"),
-      seq(":", $._expression),
-      $._expression, ":", $._expression
+      $.colon_expression,
+      $.left_colon_expression,
+      $.right_colon_expression,
     ),
 
-    integer_literal: $ => /[0-9]+/,
+    colon_expression: $ => seq($._expression, ':', $._expression),
 
+    left_colon_expression: $ => seq(':', $._expression),
+
+    right_colon_expression: $ => seq($._expression, ':'),
+
+    /* eslint-disable no-unused-vars */
+    integer_literal: $ => /[0-9]+/,
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
     real_literal: $ => token(choice(
       /[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?/,
       /[0-9]+\.([eE][+-]?[0-9]+)?/,
-      /[0-9]+[eE][+-]?[0-9]+/
+      /[0-9]+[eE][+-]?[0-9]+/,
     )),
-
-    identifier: $ => /[A-Za-z][A-Za-z0-9_]*/,
+    /* eslint-enable no-unused-vars */
 
     // Statements
     _statement: $ => choice(
@@ -524,28 +615,37 @@ module.exports = grammar({
       $.if_statement,
       $.while_statement,
       $.for_statement,
-      $.block_statement
+      $.block_statement,
     ),
 
+    /* eslint-disable no-unused-vars */
     empty_statement: $ => ';',
+    /* eslint-enable no-unused-vars */
 
     assignment_statement: $ => prec(PREC.ASSIGN, seq(
-      $.identifier,
-      optional(seq('[', commaSep1($.index), ']')),
+      $.lhs,
       $.assignment_op,
       $._expression,
-      ';'
+      ';',
     )),
 
-    assignment_op: $ => choice(
-      "<-",
-      "=",
-      "+=",
-      "-=",
-      "/=",
-      ".*=",
-      "./="
+    lhs: $ => seq(
+      $.identifier,
+      repeat(seq('[', commaSep1($.index), ']')),
     ),
+
+    /* eslint-disable no-unused-vars */
+    assignment_op: $ => choice(
+      '<-',
+      '=',
+      '+=',
+      '-=',
+      '*=',
+      '/=',
+      '.*=',
+      './=',
+    ),
+    /* eslint-enable no-unused-vars */
 
     sampling_statement: $ => seq(
       $._expression,
@@ -554,132 +654,177 @@ module.exports = grammar({
       '(',
       commaSep($._expression),
       ')',
-      optional($.truncation),
-      ';'
+      optional($._truncation),
+      ';',
     ),
 
-    truncation: $ => seq(
+    /* eslint-disable no-unused-vars */
+    _truncation: $ => choice(
+      $.lower_upper_truncation,
+      $.lower_truncation,
+      $.upper_truncation,
+      $.empty_truncation,
+    ),
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
+    lower_upper_truncation: $ => seq(
       'T',
       '[',
-      optional($._expression),
+      $._expression,
       ',',
-      optional($._expression),
-      ']'
+      $._expression,
+      ']',
     ),
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
+    lower_truncation: $ => seq(
+      'T',
+      '[',
+      $._expression,
+      ',',
+      ']',
+    ),
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
+    upper_truncation: $ => seq(
+      'T',
+      '[',
+      ',',
+      $._expression,
+      ']',
+    ),
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
+    empty_truncation: $ => seq(
+      'T',
+      '[',
+      ',',
+      ']',
+    ),
+    /* eslint-enable no-unused-vars */
 
     log_prob_statement: $ => seq(
       'increment_log_prob',
       '(',
       $._expression,
       ')',
-      ';'
+      ';',
     ),
 
     target_statement: $ => seq(
       'target',
       '+=',
       $._expression,
-      ';'
+      ';',
     ),
 
+    /* eslint-disable no-unused-vars */
     break_statement: $ => seq('break', ';'),
+    /* eslint-enable no-unused-vars */
 
+    /* eslint-disable no-unused-vars */
     continue_statement: $ => seq('continue', ';'),
+    /* eslint-enable no-unused-vars */
 
     print_statement: $ => seq(
       'print',
       '(',
-      optional(choice($._expression, $.string_literal)),
+      commaSep(choice($._expression, $.string_literal)),
       ')',
-      ';'
+      ';',
     ),
 
     // currently nested quotes not allowed
-    string_literal: $ => /"[A-Za-z0-9 ~@#$%^&*_'`+{}[\]()<>|/!?.,;:-]*"/,
+    /* eslint-disable no-unused-vars */
+    string_literal: $ => /"[A-Za-z0-9 ~@#$%^&*_'`+{}[\]()<>|/!?.,;:=-]*"/,
+    /* eslint-enable no-unused-vars */
 
     reject_statement: $ => seq(
       'reject',
       '(',
       optional(choice($._expression, $.string_literal)),
       ')',
-      ';'
+      ';',
     ),
 
     return_statement: $ => seq(
       'return',
       $._expression,
-      ';'
+      ';',
     ),
 
     // right precedence needed to resolve ambiguity
-    if_statement: $ => prec.right(seq(
+    if_statement: $ => prec.right(1, seq(
       'if',
       '(', $._expression, ')',
       $._statement,
       // implicit else if
-      optional(seq('else', $._statement))
+      optional(seq('else', $._statement)),
     )),
 
-    while_statement: $ => seq(
+    while_statement: $ => prec(1, seq(
       'while',
       '(',
       $._expression,
       ')',
-      $._statement
-    ),
+      $._statement,
+    )),
 
-    for_statement: $ => seq(
+    for_statement: $ => prec(1, seq(
       'for',
       '(',
       $.identifier,
       'in',
       $._expression,
-      ':',
-      $._expression,
+      optional(seq(':', $._expression)),
       ')',
-      $._statement
-    ),
+      $._statement,
+    )),
 
     block_statement: $ => seq(
       '{',
       repeat($.variable_declaration),
       repeat($._statement),
-      '}'
+      '}',
     ),
 
-    include: $ => token(seq(
-      // does include have to be at the start of the line?
-      '#include',
-      '/.*/'
-    )),
+    /* eslint-disable no-unused-vars */
+    // preproc_include: $ => seq(
+    //   // does include have to be at the start of the line?
+    //   '#include',
+    //   // this could be improved
+    //   /[<'"]/,
+    //   /.*/,
+    //   /[>'"]/,
+    // ),
+    /* eslint-enable no-unused-vars */
 
-    // OTHER
-    // http://stackoverflow.com/questions/13014947/regex-to-match-a-c-style-multiline-comment/36328890#36328890
+    // handle # comments separately.
+    // They are deprecated, but also need to be handled differently
+    // than includes.
+    /* eslint-disable no-unused-vars */
+    // hash_comment: $ => seq(
+    //   '#',
+    //   /.*/,
+    // ),
+    /* eslint-enable no-unused-vars */
+
+    /* eslint-disable no-unused-vars */
     comment: $ => token(choice(
-       seq('//', /.*/),
-       seq('#', /.*/),
-       seq(
-         '/*',
-         /[^*]*\*+([^/*][^*]*\*+)*/,
-         '/'
-       )
+      seq('//', /.*/),
+      seq('#', /.*/),
+      // http://stackoverflow.com/questions/13014947/regex-to-match-a-c-style-multiline-comment/36328890#36328890
+      seq(
+        '/*',
+        /[^*]*\*+([^/*][^*]*\*+)*/,
+        '/',
+      ),
     )),
+    /* eslint-enable no-unused-vars */
 
-  }
+  },
 });
-
-function commaSep1(rule) {
-  return seq(
-    rule,
-    repeat(seq(',', rule))
-  )
-}
-
-function commaSep(rule) {
-  return optional(commaSep1(rule))
-}
-
-// repeat rule n times
-function repRule(rule, n) {
-  return seq(...Array(n).fill(rule))
-}

@@ -1,0 +1,542 @@
+===========================
+Simple Assignment statement
+===========================
+
+model {
+  n = 0;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+============================
+Complex assignment statement
+============================
+
+model {
+  Sigma = diag_matrix(sigma) * Omega * diag_matrix(sigma);
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (function_expression
+              (identifier)
+              (argument_list
+                (identifier)))
+            (identifier))
+          (function_expression
+            (identifier)
+            (argument_list
+              (identifier)))))))
+
+====================================
+Assignment statement with LHS index
+====================================
+
+model {
+  Y[1] = x;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs
+          (identifier)
+          (index
+            (integer_literal)))
+        (assignment_op)
+        (identifier))))
+
+============================================
+Compound sum and assignment statement
+============================================
+
+model {
+  x += 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+============================================
+Compound minus and assignment statement
+============================================
+
+model {
+  x -= 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+=================================================
+Compound multiplication and assignment statement
+=================================================
+
+model {
+  x *= 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+=================================================
+Compound division and assignment statement
+=================================================
+
+model {
+  x /= 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+============================================================
+Compound elementwise multiplication and assignment statement
+============================================================
+
+model {
+  x *= 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+=======================================================
+Compound elementwise division and assignment statement
+=======================================================
+
+model {
+  x /= 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal))))
+
+================================
+Increment log density statement
+================================
+
+model {
+  target += x;
+}
+
+---
+
+(program
+  (model
+      (target_statement
+        (identifier))))
+
+================================
+Sampling statements
+================================
+
+model {
+  y ~ normal(mu, sigma);
+}
+
+---
+
+(program
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier))))
+
+======================================
+Sampling statement with LHS expression
+======================================
+
+model {
+  log(y) ~ normal(mu, sigma);
+}
+
+---
+
+(program
+  (model
+      (sampling_statement
+        (function_expression
+          (identifier)
+          (argument_list
+            (identifier)))
+        (identifier)
+        (identifier)
+        (identifier))))
+
+=======================================
+Truncation
+=======================================
+
+model {
+  y ~ normal(mu, sigma) T[0, 1];
+}
+
+---
+
+
+(program
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier)
+        (lower_upper_truncation
+          (integer_literal)
+          (integer_literal)))))
+
+=======================================
+Truncation with lower bound
+=======================================
+
+model {
+  y ~ normal(mu, sigma) T[0, ];
+}
+
+---
+
+(program
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier)
+        (lower_truncation
+          (integer_literal)))))
+
+=======================================
+Truncation with upper bound
+=======================================
+
+model {
+  y ~ normal(mu, sigma) T[ , 1];
+}
+
+---
+
+(program
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier)
+        (upper_truncation
+          (integer_literal)))))
+
+=======================================
+Empty truncation
+=======================================
+
+model {
+  y ~ normal(mu, sigma) T[ , ];
+}
+
+---
+
+(program
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier)
+        (empty_truncation))))
+
+===============
+For loop
+===============
+
+model {
+  for (n in 1:N) {
+    y[n] ~ normal(mu, sigma);
+  }
+}
+
+---
+
+(program
+  (model
+    (for_statement
+      (identifier)
+      (integer_literal)
+      (identifier)
+      (block_statement
+        (sampling_statement
+          (indexed_expression
+            (identifier)
+            (index
+              (identifier)))
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+===============
+For-each loop
+===============
+
+model {
+  for (n in foo) {
+    y[n] ~ normal(mu, sigma);
+  }
+}
+
+---
+
+(program
+  (model
+    (for_statement
+      (identifier)
+      (identifier)
+      (block_statement
+        (sampling_statement
+          (indexed_expression
+            (identifier)
+            (index
+              (identifier)))
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+===============
+Break statement
+===============
+
+model {
+  break;
+}
+
+---
+
+(program
+  (model
+    (break_statement)))
+
+===================
+Continue statement
+===================
+
+model {
+  continue;
+}
+
+---
+
+(program
+  (model
+    (continue_statement)))
+
+===============
+While loop
+===============
+
+model {
+  while (1) x += 1;
+}
+
+---
+
+(program
+  (model
+    (while_statement
+      (integer_literal)
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (integer_literal)))))
+
+====================
+Blocks within blocks
+====================
+
+model {
+  for (m in 1:M) {
+    {
+      int n = 2 * m;
+      sum += n;
+    }
+    for (n in 1:N)
+      sum += x[m, n];
+  }
+}
+
+---
+
+(program
+  (model
+    (for_statement
+      (identifier)
+      (integer_literal)
+      (identifier)
+      (block_statement
+        (block_statement
+          (variable_declaration
+            (int_type)
+            (identifier)
+            (infix_op_expression
+              (integer_literal)
+              (identifier)))
+          (assignment_statement
+            (lhs (identifier))
+            (assignment_op)
+            (identifier)))
+        (for_statement
+          (identifier)
+          (integer_literal)
+          (identifier)
+          (assignment_statement
+            (lhs (identifier))
+            (assignment_op)
+            (indexed_expression
+              (identifier)
+                (index (identifier))
+                (index (identifier)))))))))
+
+==================
+if with no braces
+==================
+
+model {
+  if (foo) x = 1;
+}
+
+
+---
+
+(program (model (if_statement (identifier) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)))))
+
+==================
+if with braces
+==================
+
+model {
+  if (foo) {
+    x = 1;
+  }
+}
+
+
+---
+
+(program (model (if_statement (identifier) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))))))
+
+=======================
+if-else with no braces
+=======================
+
+model {
+  if (foo) x = 1;
+  else x = 0;
+}
+
+
+---
+
+(program (model (if_statement (identifier) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)))))
+
+================================
+if-else with braces
+================================
+
+model {
+  if (foo) {
+    x = 1;
+  } else {
+    x = 0;
+  }
+}
+
+
+---
+
+(program (model (if_statement (identifier) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))))))
+
+===============================
+if-else if-else without braces
+===============================
+
+model {
+  if (foo) x = 1;
+  else if (bar) x = 2;
+  else x = 3;
+}
+
+
+---
+
+(program (model (if_statement (identifier) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)) (if_statement (identifier) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)) (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))))))
+
+============================
+if-else if-else with braces
+===========================
+
+model {
+  if (foo) {
+    x = 1;
+  } else if (bar) {
+    x = 0;
+  } else {
+    x = 3;
+  }
+}
+
+
+---
+
+(program (model (if_statement (identifier) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))) (if_statement (identifier) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal))) (block_statement (assignment_statement (lhs (identifier)) (assignment_op) (integer_literal)))))))

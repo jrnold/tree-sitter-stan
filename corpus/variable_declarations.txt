@@ -1,0 +1,288 @@
+=============
+real
+=============
+
+model {
+  real x;
+}
+
+---
+
+(program (model (variable_declaration (real_type) (identifier))))
+
+=============
+integer
+=============
+
+model {
+  int x;
+}
+
+---
+
+(program (model (variable_declaration (int_type) (identifier))))
+
+===============
+vector
+===============
+
+model {
+  vector[n] x;
+}
+
+---
+
+(program (model (variable_declaration (vector_type (identifier)) (identifier))))
+
+================
+ordered
+================
+
+model {
+  ordered[n] x;
+}
+
+---
+
+(program (model (variable_declaration (ordered_type (identifier)) (identifier))))
+
+=================
+positive_ordered
+=================
+
+model {
+  positive_ordered[n] x;
+}
+
+---
+
+(program (model (variable_declaration (positive_ordered_type (identifier)) (identifier))))
+
+
+=================
+simplex
+=================
+
+model {
+  simplex[n] x;
+}
+
+---
+
+(program (model (variable_declaration (simplex_type (identifier)) (identifier))))
+
+=================
+unit_vector
+=================
+
+model {
+  unit_vector[n] x;
+}
+
+---
+
+(program (model (variable_declaration (unit_vector_type (identifier)) (identifier))))
+
+=================
+row_vector
+=================
+
+model {
+  row_vector[n] x;
+}
+
+---
+
+(program (model (variable_declaration (row_vector_type (identifier)) (identifier))))
+
+=================
+matrix
+=================
+
+model {
+  matrix[n, m] x;
+}
+
+---
+
+(program (model (variable_declaration (matrix_type (identifier) (identifier)) (identifier))))
+
+=====================
+cholesky_factor_corr
+=====================
+
+model {
+  cholesky_factor_corr[n] x;
+}
+
+---
+
+(program (model (variable_declaration (cholesky_factor_corr_type (identifier)) (identifier))))
+
+=============================
+cholesky_factor_cov (square)
+=============================
+
+model {
+  cholesky_factor_cov[n] x;
+}
+
+---
+
+(program (model (variable_declaration (cholesky_factor_cov_type (identifier)) (identifier))))
+
+=================================
+cholesky_factor_cov (non-square)
+=================================
+
+model {
+  cholesky_factor_cov[n, m] x;
+}
+
+---
+
+(program (model (variable_declaration (cholesky_factor_cov_type (identifier) (identifier)) (identifier))))
+
+=================================
+cov_matrix
+=================================
+
+model {
+  cov_matrix[n] x;
+}
+
+---
+
+(program (model (variable_declaration (cov_matrix_type (identifier)) (identifier))))
+
+=================================
+corr_matrix
+=================================
+
+model {
+  corr_matrix[n] x;
+}
+
+---
+
+(program (model (variable_declaration (corr_matrix_type (identifier)) (identifier))))
+
+
+====================================
+Variable declaration and assignment
+====================================
+
+model {
+  real x = 1.;
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (real_type) (identifier) (real_literal))))
+
+=========================================
+Array declaration and assignment
+=========================================
+
+model {
+  real x[1] = {1.};
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (integer_literal))
+      (array_expression (real_literal)))))
+
+============================================
+Array declaration and assignment 2
+============================================
+
+model {
+  real x[2] = {1., 1.};
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (integer_literal))
+      (array_expression
+        (real_literal)
+        (real_literal)))))
+
+============================================
+Array declaration and assignment 3
+============================================
+
+model {
+  real x[2, 2] = {{1., 1.}, {1., 1.}};
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (integer_literal) (integer_literal))
+      (array_expression
+        (array_expression (real_literal) (real_literal))
+        (array_expression (real_literal) (real_literal))))))
+
+=========================================
+Vector declaration and assignment
+=========================================
+
+model {
+  row_vector[1] x = [1];
+}
+
+---
+
+============================================
+Vector declaration and assignment
+============================================
+
+model {
+  row_vector[2] x = [1., 1.];
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (row_vector_type (integer_literal))
+      (identifier)
+      (vector_expression (real_literal) (real_literal)))))
+
+=========================================
+Matrix declaration and assignment
+=========================================
+
+model {
+  matrix[2, 1] x = [[1., 1.], [1.]];
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (matrix_type (integer_literal) (integer_literal))
+      (identifier)
+      (vector_expression
+        (vector_expression (real_literal) (real_literal))
+        (vector_expression (real_literal))))))

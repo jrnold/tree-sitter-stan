@@ -1,0 +1,254 @@
+======================
+Normal 1
+======================
+
+data {
+  int<lower=0> N;
+  real y[N];
+}
+
+parameters {
+  real mu;
+}
+
+model {
+  target += normal_lpdf(mu | 0, 10);
+  target += normal_lpdf(y  | mu, 1);
+}
+
+-----
+
+(program
+  (data
+    (variable_declaration
+      (int_type
+        (range_constraint
+          (range_lower
+            (integer_literal))))
+           (identifier))
+    (variable_declaration
+      (real_type) (identifier) (dims (identifier))))
+  (parameters
+    (variable_declaration
+      (real_type)
+      (identifier)))
+  (model
+      (target_statement
+        (distr_expression
+          (identifier)
+          (distr_argument_list
+            (identifier)
+            (integer_literal)
+            (integer_literal))))
+      (target_statement
+        (distr_expression
+          (identifier)
+          (distr_argument_list
+            (identifier)
+            (identifier)
+            (integer_literal))))))
+
+==========
+Normal 2
+==========
+
+data {
+  int<lower=0> N;
+  real y[N];
+}
+
+parameters {
+  real mu;
+}
+
+model {
+  mu ~ normal(0, 10);
+  y ~ normal(mu, 1);
+}
+
+---
+
+(program
+  (data
+    (variable_declaration
+      (int_type
+        (range_constraint
+          (range_lower (integer_literal))))
+      (identifier))
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (identifier))))
+    (parameters
+      (variable_declaration
+        (real_type)
+        (identifier)))
+    (model
+        (sampling_statement
+          (identifier)
+          (identifier)
+          (integer_literal)
+          (integer_literal))
+        (sampling_statement
+          (identifier)
+          (identifier)
+          (identifier)
+          (integer_literal))))
+
+=============
+Example 1
+=============
+
+parameters {
+  real y[2];
+}
+model {
+  y[1] ~ normal(0, 1);
+  y[2] ~ double_exponential(0, 2);
+}
+
+---
+
+(program
+  (parameters
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims
+        (integer_literal))))
+  (model
+      (sampling_statement
+        (indexed_expression
+          (identifier)
+          (index
+            (integer_literal)))
+        (identifier)
+        (integer_literal)
+        (integer_literal))
+      (sampling_statement
+        (indexed_expression
+          (identifier)
+          (index
+            (integer_literal)))
+        (identifier)
+        (integer_literal)
+        (integer_literal))))
+
+=============
+Example 2
+=============
+
+data {real y_mean;} parameters {real y;} model {y ~ normal(y_mean,1);}
+
+---
+
+(program
+  (data
+    (variable_declaration
+      (real_type)
+      (identifier)))
+  (parameters
+    (variable_declaration
+      (real_type) (identifier)))
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (identifier)
+        (integer_literal))))
+
+==============
+Eight Schools
+==============
+
+data {
+  int<lower=0> J; // number of schools
+  real y[J]; // estimated treatment effects
+  real<lower=0> sigma[J]; // s.e. of effect estimates
+}
+parameters {
+  real mu;
+  real<lower=0> tau;
+  real eta[J];
+}
+transformed parameters {
+  real theta[J];
+  for (j in 1:J)
+    theta[j] = mu + tau * eta[j];
+}
+model {
+  target += normal_lpdf(eta | 0, 1);
+  target += normal_lpdf(y | theta, sigma);
+}
+
+---
+
+(program
+  (data
+    (variable_declaration
+      (int_type
+        (range_constraint
+          (range_lower (integer_literal))))
+        (identifier))
+    (comment)
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (identifier)))
+    (comment)
+    (variable_declaration
+      (real_type
+        (range_constraint
+          (range_lower (integer_literal))))
+          (identifier)
+          (dims (identifier)))
+    (comment))
+  (parameters
+    (variable_declaration
+      (real_type)
+      (identifier))
+    (variable_declaration
+      (real_type
+        (range_constraint
+          (range_lower (integer_literal))))
+          (identifier))
+    (variable_declaration
+      (real_type)
+      (identifier)
+      (dims (identifier))))
+    (transformed_parameters
+      (variable_declaration
+        (real_type)
+        (identifier)
+        (dims (identifier)))
+      (for_statement
+        (identifier)
+        (integer_literal)
+        (identifier)
+        (assignment_statement
+          (lhs
+            (identifier)
+              (index (identifier)))
+            (assignment_op)
+            (infix_op_expression
+              (identifier)
+              (infix_op_expression
+                (identifier)
+                (indexed_expression
+                  (identifier)
+                  (index (identifier))))))))
+      (model
+          (target_statement
+            (distr_expression
+              (identifier)
+              (distr_argument_list
+                (identifier)
+                  (integer_literal)
+                  (integer_literal))))
+          (target_statement
+            (distr_expression
+            (identifier)
+            (distr_argument_list
+              (identifier)
+              (identifier)
+              (identifier))))))

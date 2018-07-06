@@ -1,0 +1,1118 @@
+===========
+Includes
+===========
+
+#include std-normal.stan
+parameters {
+  real y;
+}
+model {
+  y ~ std_normal();
+}
+
+---
+
+(program
+  (comment)
+  (parameters
+    (variable_declaration
+      (real_type)
+      (identifier)))
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier))))
+
+===================
+Line based comments
+===================
+
+data {
+  int<lower=0> N; // number of observations
+  real y[N]; // observations
+}
+model {
+  y ~ normal(0., 1.);
+}
+
+---
+
+(program
+  (data
+    (variable_declaration
+      (int_type
+        (range_constraint
+          (range_lower (integer_literal))))
+          (identifier))
+    (comment)
+    (variable_declaration
+        (real_type)
+        (identifier)
+        (dims
+          (identifier)))
+    (comment))
+  (model
+      (sampling_statement
+        (identifier)
+        (identifier)
+        (real_literal)
+        (real_literal))))
+
+
+=======================
+Vector and Matrix Type
+=======================
+
+model {
+  real x[10];
+  matrix[3, 3] m[6, 7];
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (real_type)
+        (identifier)
+        (dims (integer_literal)))
+      (variable_declaration
+        (matrix_type
+          (integer_literal)
+          (integer_literal))
+        (identifier)
+        (dims
+          (integer_literal)
+          (integer_literal)))))
+
+=======================
+Constrained Data Types
+=======================
+
+model {
+  int<lower = 1> N;
+  real<upper = 0> log_p;
+  vector<lower = -1, upper = 1>[3] rho;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (int_type
+          (range_constraint
+            (range_lower (integer_literal))))
+        (identifier))
+      (variable_declaration
+        (real_type
+          (range_constraint
+            (range_upper (integer_literal))))
+        (identifier))
+      (variable_declaration
+        (vector_type
+          (range_constraint
+            (range_lower_upper
+              (prefix_op_expression (integer_literal))
+              (integer_literal)))
+          (integer_literal))
+        (identifier))))
+
+=====================
+Unconstrained Integer
+=====================
+
+model {
+  int N;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (int_type) (identifier))))
+
+=====================
+Constrained Integer
+=====================
+
+model {
+  int<lower=1> N;
+  int<lower=0, upper=1> cond;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (int_type
+          (range_constraint
+            (range_lower (integer_literal))))
+        (identifier))
+      (variable_declaration
+        (int_type
+          (range_constraint
+            (range_lower_upper
+              (integer_literal)
+              (integer_literal))))
+        (identifier))))
+
+=====================
+Unconstrained Real
+=====================
+
+model {
+  real theta;
+}
+
+---
+
+(program
+ (model
+    (variable_declaration
+      (real_type)
+      (identifier))))
+
+=====================
+Constrained Real
+=====================
+
+model {
+  real<lower=0> sigma;
+  real<upper=-1> x;
+  real<lower=-1, upper=1> rho;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (real_type
+          (range_constraint
+          (range_lower
+            (integer_literal))))
+        (identifier))
+      (variable_declaration
+        (real_type
+          (range_constraint
+            (range_upper
+              (prefix_op_expression
+              (integer_literal)))))
+        (identifier))
+      (variable_declaration
+        (real_type
+          (range_constraint
+            (range_lower_upper
+              (prefix_op_expression
+              (integer_literal))
+              (integer_literal))))
+        (identifier))))
+
+=====================
+Infinite Constraints
+=====================
+
+model {
+  real<lower=negative_infinity(), upper=positive_infinity()> x;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (real_type
+          (range_constraint
+            (range_lower_upper
+              (function_expression
+                (identifier)
+                (argument_list))
+              (function_expression
+                (identifier)
+                  (argument_list)))))
+        (identifier))))
+
+===================
+Function precedence
+===================
+
+model {
+  foo = y + log(x);
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs
+          (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (identifier)
+          (function_expression
+            (identifier)
+            (argument_list
+              (identifier)))))))
+
+======================
+Integer literals
+======================
+
+model {
+  foo = {0, 1, -1, 256, -127098, 24567898765};
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs
+          (identifier))
+        (assignment_op)
+        (array_expression
+          (integer_literal)
+          (integer_literal)
+          (prefix_op_expression
+            (integer_literal))
+          (integer_literal)
+          (prefix_op_expression
+            (integer_literal))
+          (integer_literal)))))
+
+======================
+Real literals
+======================
+
+model {
+  foo = {0.0, 1.0, 3.14, -217.9387, 2.7e3, -2E-5};
+}
+
+----
+
+(program
+  (model
+      (assignment_statement
+      (lhs
+        (identifier))
+    (assignment_op)
+    (array_expression
+      (real_literal)
+      (real_literal)
+      (real_literal)
+      (prefix_op_expression
+        (real_literal))
+      (real_literal)
+      (prefix_op_expression
+        (real_literal))))))
+
+===============
+Variable names
+===============
+
+model {
+  real a;
+  real a3;
+  real a_3;
+  real Sigma;
+  real my_cpp_style_variable;
+  real myCamelCaseVariable;
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (real_type)
+        (identifier))
+      (variable_declaration
+        (real_type)
+        (identifier))
+      (variable_declaration
+        (real_type)
+        (identifier))
+      (variable_declaration
+        (real_type)
+        (identifier))
+      (variable_declaration
+        (real_type)
+        (identifier))
+      (variable_declaration
+        (real_type)
+        (identifier))))
+
+===================
+Vector Expressions
+===================
+
+model {
+  row_vector[2] rv2 = [ 1, 2 ];
+  vector[3] v3 = [ 3, 4, 5 ]';
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (row_vector_type
+          (integer_literal))
+        (identifier)
+        (vector_expression
+          (integer_literal)
+          (integer_literal)))
+      (variable_declaration
+        (vector_type
+          (integer_literal))
+        (identifier)
+        (postfix_op_expression
+          (vector_expression
+            (integer_literal)
+            (integer_literal)
+            (integer_literal))))))
+
+=================
+Array Expressions
+=================
+
+model {
+  int a[3] = { 1, 10, 100 };
+  int b[2, 3] = { { 1, 2, 3 }, { 4, 5, 6 } };
+  int b[2, 3] = { { 1, 2, 3 }, { 4, 5, 6 } };
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (int_type)
+        (identifier)
+        (dims
+          (integer_literal))
+      (array_expression
+        (integer_literal)
+        (integer_literal)
+        (integer_literal)))
+      (variable_declaration
+        (int_type)
+        (identifier)
+        (dims
+          (integer_literal)
+          (integer_literal))
+        (array_expression
+          (array_expression
+            (integer_literal)
+            (integer_literal)
+            (integer_literal))
+        (array_expression
+          (integer_literal)
+          (integer_literal)
+          (integer_literal))))
+        (variable_declaration
+          (int_type)
+          (identifier)
+          (dims
+            (integer_literal)
+            (integer_literal))
+          (array_expression
+            (array_expression
+              (integer_literal)
+              (integer_literal)
+              (integer_literal))
+            (array_expression
+              (integer_literal)
+              (integer_literal)
+              (integer_literal))))))
+
+======================
+Array Expression Types
+======================
+
+model {
+  vector[3] b;
+  vector[3] c;
+  vector[3] d[2] = {b, c};
+  real b[2] = {1, 1.9};
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (vector_type
+          (integer_literal))
+        (identifier))
+      (variable_declaration
+        (vector_type
+          (integer_literal))
+        (identifier))
+      (variable_declaration
+        (vector_type
+          (integer_literal))
+          (identifier)
+          (dims
+            (integer_literal))
+          (array_expression
+            (identifier)
+            (identifier)))
+      (variable_declaration
+        (real_type)
+        (identifier)
+        (dims
+          (integer_literal))
+        (array_expression
+          (integer_literal)
+          (real_literal)))))
+
+========================
+Parentheses for Grouping
+========================
+
+model {
+  foo = 1 + 2 * 3;
+  foo = 1 + (2 * 3);
+  foo = (1 + 2) * 3;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs
+          (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (integer_literal)
+          (infix_op_expression
+            (integer_literal)
+            (integer_literal))))
+      (assignment_statement
+        (lhs
+          (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (integer_literal)
+          (parenthized_expression
+            (infix_op_expression
+              (integer_literal)
+              (integer_literal)))))
+      (assignment_statement
+        (lhs
+          (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (parenthized_expression
+            (infix_op_expression
+              (integer_literal)
+              (integer_literal)))
+          (integer_literal)))))
+
+=========================================
+Arithmetic Expression 1
+=========================================
+
+model {
+  foo = 3.0 + 0.14;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (real_literal)
+          (real_literal)))))
+
+=========================================
+Arithmetic Expression 2
+=========================================
+
+model {
+  foo = -15;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (prefix_op_expression
+          (integer_literal)))))
+
+=========================================
+Arithmetic Expression 3
+=========================================
+
+model {
+  foo = 2 * 3 + 1;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (integer_literal)
+            (integer_literal))
+          (integer_literal)))))
+
+=========================================
+Arithmetic Expression 4
+=========================================
+
+model {
+  foo = (x - y) / 2.0;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (parenthized_expression
+            (infix_op_expression
+              (identifier)
+              (identifier)))
+          (real_literal)))))
+
+=========================================
+Arithmetic Expression 5
+=========================================
+
+model {
+  foo = (n * (n + 1)) / 2;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (parenthized_expression
+            (infix_op_expression
+              (identifier)
+              (parenthized_expression
+                (infix_op_expression
+                  (identifier)
+                  (integer_literal)))))
+          (integer_literal)))))
+
+========================================
+Arithmetic Expression 6
+=========================================
+
+model {
+  foo = x / n;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (identifier)
+          (identifier)))))
+
+========================================
+Operator Precedence 1
+=========================================
+
+model {
+  d = a * b + c;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (identifier)
+            (identifier))
+          (identifier)))))
+
+========================================
+Operator Precedence 2
+=========================================
+
+model {
+  d = a + b * c;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (identifier)
+          (infix_op_expression
+            (identifier)
+            (identifier))))))
+
+========================================
+Operator Precedence 2
+=========================================
+
+model {
+  d = 2 * x + 3 * -y;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (integer_literal)
+            (identifier))
+          (infix_op_expression
+            (integer_literal)
+            (prefix_op_expression
+              (identifier)))))))
+
+========================================
+Operator Precedence 3
+=========================================
+
+model {
+  d = -u';
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (prefix_op_expression
+          (postfix_op_expression
+            (identifier))))))
+
+========================================
+Operator Precedence 4
+=========================================
+
+model {
+  d = a / b * c;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (identifier)
+            (identifier))
+          (identifier)))))
+
+========================================
+Operator Precedence 5
+=========================================
+
+model {
+  d = u * v';
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (identifier)
+          (postfix_op_expression
+            (identifier))))))
+
+========================================
+Operator Precedence 6
+=========================================
+
+model {
+  d = u' * v;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (postfix_op_expression
+            (identifier))
+          (identifier)))))
+
+========================================
+Operator Precedence 7
+=========================================
+
+model {
+  d = -n ^ 3;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (prefix_op_expression
+          (infix_op_expression
+            (identifier)
+            (integer_literal))))))
+
+========================================
+Operator Precedence 8
+=========================================
+
+model {
+  d = 2 ^ 3 ^ 4;
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (integer_literal)
+          (infix_op_expression
+            (integer_literal)
+            (integer_literal))))))
+
+========================================
+Arithmetic Op 1
+=========================================
+
+model {
+  foo = (y - mu)' * Sigma * (y - mu);
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (infix_op_expression
+            (postfix_op_expression
+              (parenthized_expression
+                (infix_op_expression
+                  (identifier)
+                  (identifier))))
+            (identifier))
+          (parenthized_expression
+            (infix_op_expression
+              (identifier)
+              (identifier)))))))
+
+====================
+Conditional Operator
+====================
+
+model {
+  foo = a ? b : c;
+  foo = a > 0 || b < 0 ? c + d : e - f;
+  foo = (a > 0 || b < 0) ? (c + d) : (e - f);
+  foo = a ? b : c ? d : e;
+  foo = a ? b : (c ? d : e);
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (conditional_expression
+          (identifier)
+          (identifier)
+          (identifier)))
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (conditional_expression
+          (infix_op_expression
+            (infix_op_expression
+              (identifier)
+              (integer_literal))
+            (infix_op_expression
+              (identifier)
+              (integer_literal)))
+          (infix_op_expression
+            (identifier)
+            (identifier))
+          (infix_op_expression
+            (identifier)
+            (identifier))))
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (conditional_expression
+          (parenthized_expression
+            (infix_op_expression
+              (infix_op_expression
+                (identifier)
+                (integer_literal))
+              (infix_op_expression
+                (identifier)
+                (integer_literal))))
+          (parenthized_expression
+            (infix_op_expression
+              (identifier)
+              (identifier)))
+          (parenthized_expression
+            (infix_op_expression
+              (identifier)
+              (identifier)))))
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (conditional_expression
+          (identifier)
+          (identifier)
+          (conditional_expression
+            (identifier)
+            (identifier)
+            (identifier))))
+        (assignment_statement
+          (lhs (identifier))
+          (assignment_op)
+          (conditional_expression
+            (identifier)
+            (identifier)
+            (parenthized_expression
+              (conditional_expression
+                (identifier)
+                (identifier)
+                (identifier)))))))
+
+==============
+Indexing 1
+==============
+
+model {
+  foo = alpha * x[1];
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (infix_op_expression
+          (identifier)
+          (indexed_expression
+            (identifier)
+            (index
+              (integer_literal)))))))
+
+==============
+Indexing 2
+==============
+
+model {
+  foo = x[2, 3];
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (indexed_expression
+          (identifier)
+          (index
+            (integer_literal))
+          (index
+            (integer_literal))))))
+
+==============
+Indexing 3
+==============
+
+model {
+  foo = x[2][3];
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (indexed_expression
+          (indexed_expression
+            (identifier)
+            (index
+              (integer_literal)))
+          (index
+            (integer_literal))))))
+
+================
+Nullary Function
+================
+
+model {
+  foo = pi();
+}
+
+---
+
+(program
+  (model
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (function_expression
+          (identifier)
+          (argument_list)))))
+
+=================
+Array Declaration
+=================
+
+model {
+  matrix[M, N] a[I, J, K];
+}
+
+---
+
+(program
+  (model
+      (variable_declaration
+        (matrix_type
+          (identifier)
+          (identifier))
+        (identifier)
+        (dims
+          (identifier)
+          (identifier)
+          (identifier)))))
+
+=================
+Index expression
+=================
+
+model {
+  x = y[i];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (identifier) (index (identifier))))))
+
+==================================
+Index with right colon expression
+==================================
+
+model {
+  x = y[i:];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (identifier) (index (right_colon_expression (identifier)))))))
+
+=================================
+Index with left colon expression
+=================================
+
+model {
+  x = y[:i];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (identifier) (index (left_colon_expression (identifier)))))))
+
+=================================
+Index with infix colon expression
+=================================
+
+model {
+  x = y[i:j];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (identifier) (index (colon_expression (identifier) (identifier)))))))
+
+
+==========================================
+Index expression with multiple dimensions
+==========================================
+
+model {
+  x = y[i, j, k];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (identifier) (index (identifier)) (index (identifier)) (index (identifier))))))
+
+==========================================
+Multiple indexes
+==========================================
+
+model {
+  x = y[i][j][k];
+}
+
+---
+
+(program (model (assignment_statement (lhs (identifier)) (assignment_op) (indexed_expression (indexed_expression (indexed_expression (identifier) (index (identifier))) (index (identifier))) (index (identifier))))))

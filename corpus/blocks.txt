@@ -1,0 +1,164 @@
+================
+functions block
+================
+
+functions {
+  real foo(real x, real y) {
+    return x + y;
+  }
+}
+
+---
+
+(program
+  (functions
+    (function_definition
+      (return_type
+        (unsized_type (basic_type)))
+      (function_declarator
+        (identifier)
+          (parameter_list
+            (parameter_declaration
+              (unsized_type (basic_type))
+              (identifier))
+            (parameter_declaration
+              (unsized_type (basic_type))
+              (identifier))))
+            (block_statement
+              (return_statement
+                (infix_op_expression
+                  (identifier)
+                  (identifier)))))))
+
+
+================
+data block
+================
+
+data {
+  real x;
+}
+
+---
+
+(program
+  (data
+    (variable_declaration
+      (real_type)
+      (identifier))))
+
+=======================
+transformed data block
+=======================
+
+transformed data {
+  real x;
+  x = 1.;
+}
+
+---
+
+(program
+  (transformed_data (variable_declaration (real_type) (identifier)) (assignment_statement (lhs (identifier)) (assignment_op) (real_literal))))
+
+=======================
+parameters block
+=======================
+
+parameters {
+  real x;
+}
+
+---
+
+(program
+  (parameters
+    (variable_declaration
+      (real_type)
+      (identifier))))
+
+=============================
+transformed parameters block
+=============================
+
+transformed parameters {
+  real x;
+  x = 1.;
+}
+
+---
+
+(program
+  (transformed_parameters
+    (variable_declaration
+      (real_type)
+      (identifier))
+    (assignment_statement
+      (lhs (identifier))
+      (assignment_op)
+      (real_literal))))
+
+=============================
+model block
+=============================
+
+model {
+  real x;
+  x = 1.;
+}
+
+---
+
+(program
+  (model
+    (variable_declaration
+      (real_type)
+      (identifier))
+    (assignment_statement
+      (lhs (identifier))
+      (assignment_op)
+      (real_literal))))
+
+=============================
+generated quantities block
+=============================
+
+generated quantities {
+  real x;
+  x = 1.;
+}
+
+---
+
+(program
+  (generated_quantities
+    (variable_declaration
+      (real_type)
+      (identifier))
+      (assignment_statement
+        (lhs (identifier))
+        (assignment_op)
+        (real_literal))))
+
+===========
+all blocks
+===========
+
+functions {}
+data {}
+transformed data {}
+parameters {}
+transformed parameters {}
+model {}
+generated quantities{}
+
+---
+
+(program
+  (functions)
+  (data)
+  (transformed_data)
+  (parameters)
+  (transformed_parameters)
+  (model)
+  (generated_quantities))
