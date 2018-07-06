@@ -1,17 +1,25 @@
 {
   "name": "tree-sitter-stan",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Stan grammar for node-tree-sitter",
   "main": "index.js",
   "keywords": [
     "parser",
     "lexer"
   ],
-  "author": "Jeffrey B. Arnold",
+  "author": {
+    "name": "Jeffrey B. Arnold",
+    "email": "jeffrey.arnold@gmail.com",
+    "url": "http://jrnold.me/"
+  },
   "license": "MIT",
   "dependencies": {
     "bindings": "1.2.x",
     "nan": "^2.10.0"
+  },
+  "bugs": {
+    "url": "https://github.com/jrnold/tree-sitter-stan/issues",
+    "email": "jeffrey.arnold@gmail.com"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
@@ -22,8 +30,6 @@
   "scripts": {
     "build": "tree-sitter generate && node-gyp build",
     "test": "tree-sitter test",
-    "examples": "tree-sitter parse examples/stan/src/test/test-models/good/ && tree-sitter parse examples/stan/src/test/test-models/good-standalone-functions/",
-    "tree-sitter": "tree-sitter",
-    "parse": "tree-sitter parse"
+    "run-examples": "tree-sitter parse examples/stan/src/test/test-models/good/ && tree-sitter parse examples/stan/src/test/test-models/good-standalone-functions/"
   }
 }
